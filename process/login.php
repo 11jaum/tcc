@@ -1,6 +1,10 @@
 <?php
     include("connection/connect.php");
 
+    session_start();
+    // Após verificar o login do usuário:
+    $_SESSION['username'] = $user['Username']; // Captura o nome de usuário do banco de dados
+
     if(isset($_POST["email"]) && isset($_POST["password"])) {
         // Normalization
         $email = $_POST["email"];
