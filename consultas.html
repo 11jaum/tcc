@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link type="text/css" rel="stylesheet" href="style/dashboard.css">
+    <link type="text/css" rel="stylesheet" href="style/marcar-consulta.css  ">
+    <link type="text/css" rel="stylesheet" href="style/consultas.css">
     <link rel="icon" href="img/icone.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>Consultas Agendadas</title>
@@ -18,13 +19,14 @@
 
     <div class="container">
         <h1>Consultas Agendadas</h1>
+        <br>
         <table id="consultasTable" border="1" cellspacing="0" cellpadding="10">
             <thead>
                 <tr>
                     <th>Usuário</th>
                     <th>Nome</th>
-                    <th>Data</th>
-                    <th>Hora</th>
+                    <th>Data escolhida</th>
+                    <th>Horário escolhido</th>
                     <th>Observações</th>
                     <th>Ações</th>
                 </tr>
@@ -37,99 +39,134 @@
 
     <script>
         // Função para buscar e exibir as consultas
-    function fetchConsultas() {
-        fetch('process/consultas.php')
-            .then(response => response.json())
-            .then(data => {
-                console.log(data); // Verifique a resposta recebida aqui
-                if (data.error) {
-                    Swal.fire('Erro', data.error, 'error');
-                    return;
-                }
-                if (data.message) {
-                    Swal.fire('Atenção', data.message, 'info');
-                    return;
-                }
-
-                const tableBody = document.querySelector('#consultasTable tbody');
-                tableBody.innerHTML = ''; // Limpar a tabela antes de inserir os novos dados
-
-                data.forEach(consulta => {
-                    const row = document.createElement('tr');
-                    
-                    // Formatando a data para 'dd/mm/aaaa'
-                    const dataFormatada = new Date(consulta.data_consulta);
-                    const dataString = dataFormatada.toLocaleDateString('pt-BR');
-                    
-                    // Formatando a hora para 'hh:mm:ss'
-                    const horaFormatada = new Date('1970-01-01T' + consulta.hora + 'Z'); // A data deve ser uma string com um formato válido
-                    const horaString = horaFormatada.toLocaleTimeString('pt-BR');
-
-                    row.innerHTML = `
-                        <td>${consulta.username}</td>
-                        <td>${consulta.nome}</td>
-                        <td>${dataString}</td>
-                        <td>${horaString}</td>
-                        <td>${consulta.descricao}</td>
-                        <td>
-                            <button class="delete-btn" data-id="${consulta.id}">Excluir</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-
-                addDeleteEventListeners();
-            })
-            .catch(error => {
-                console.error('Erro ao buscar consultas:', error);
-                Swal.fire('Erro', 'Não foi possível carregar as consultas.', 'error');
-            });
-    }
-
-    // Função para adicionar o evento de exclusão ao botão
-    function addDeleteEventListeners() {
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', function () {
-                const consultaId = this.getAttribute('data-id');
-
-                Swal.fire({
-                    title: 'Você tem certeza?',
-                    text: "Esta ação não pode ser desfeita!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Sim, excluir',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Enviar a requisição para o backend para excluir a consulta
-                        fetch('process/delete_consulta.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ id: consultaId }),
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire('Deletado!', 'A consulta foi excluída.', 'success');
-                                fetchConsultas(); // Recarregar a lista após exclusão
-                            } else {
-                                Swal.fire('Erro!', 'Ocorreu um erro ao tentar excluir a consulta.', 'error');
-                            }
-                        })
-                        .catch(error => {
-                            Swal.fire('Erro!', 'Erro de conexão. Tente novamente mais tarde.', 'error');
-                        });
+        function fetchConsultas() {
+            fetch('process/consultas.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        Swal.fire('Erro', data.error, 'error');
+                        return;
                     }
+                    if (data.message) {
+                        Swal.fire('Atenção', data.message, 'info');
+                        return;
+                    }
+
+                    const tableBody = document.querySelector('#consultasTable tbody');
+                    tableBody.innerHTML = ''; // Limpar a tabela antes de inserir os novos dados
+
+                    data.forEach(consulta => {
+                        const row = document.createElement('tr');
+                        
+                        const dataFormatada = new Date(consulta.data_consulta);
+                        const dataString = dataFormatada.toLocaleDateString('pt-BR');
+                        const horaFormatada = new Date('1970-01-01T' + consulta.hora + 'Z');
+                        const horaString = horaFormatada.toLocaleTimeString('pt-BR');
+
+                        row.innerHTML = `
+                            <td>${consulta.username}</td>
+                            <td>${consulta.nome}</td>
+                            <td>${dataString}</td>
+                            <td>${horaString}</td>
+                            <td>${consulta.descricao}</td>
+                            <td>
+                                <button class="accept-btn" data-id="${consulta.id}">Aceitar</button>
+                                <button class="delete-btn" data-id="${consulta.id}">Recusar</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                    addDeleteEventListeners();
+                    addAcceptEventListeners();
+                })
+                .catch(error => {
+                    Swal.fire('Erro', 'Não foi possível carregar as consultas.', 'error');
+                });
+        }
+
+        // Função para adicionar o evento de exclusão ao botão
+        function addDeleteEventListeners() {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const consultaId = this.getAttribute('data-id');
+
+                    Swal.fire({
+                        title: 'Você tem certeza?',
+                        text: "Esta ação não pode ser desfeita!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sim, recusar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetch('process/delete_consulta.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ id: consultaId }),
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire('Deletado!', 'A consulta foi recusada.', 'success');
+                                    fetchConsultas();
+                                } else {
+                                    Swal.fire('Erro!', 'Ocorreu um erro ao tentar recusar a consulta.', 'error');
+                                }
+                            })
+                            .catch(error => {
+                                Swal.fire('Erro!', 'Erro de conexão. Tente novamente mais tarde.', 'error');
+                            });
+                        }
+                    });
                 });
             });
-        });
-    }
+        }
 
-    // Chamar a função para carregar as consultas ao carregar a página
-    window.onload = fetchConsultas;
+        // Função para adicionar o evento de aceitação ao botão
+        function addAcceptEventListeners() {
+            document.querySelectorAll('.accept-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const consultaId = this.getAttribute('data-id');
 
+                    Swal.fire({
+                        title: 'Aceitar consulta?',
+                        text: "Você está prestes a aceitar esta consulta.",
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sim, aceitar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetch('process/accept_consulta.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ id: consultaId }),
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire('Aceito!', 'A consulta foi aceita com sucesso.', 'success');
+                                    fetchConsultas();
+                                } else {
+                                    Swal.fire('Erro!', 'Ocorreu um erro ao tentar aceitar a consulta.', 'error');
+                                }
+                            })
+                            .catch(error => {
+                                Swal.fire('Erro!', 'Erro de conexão. Tente novamente mais tarde.', 'error');
+                            });
+                        }
+                    });
+                });
+            });
+        }
+
+        // Carregar as consultas ao carregar a página
+        window.onload = fetchConsultas;
     </script>
 </body>
 </html>
